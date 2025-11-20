@@ -15,6 +15,7 @@ struct FlashCards difficultyArr[100];  //to filter out questions of similar diff
 struct FlashCards *arr;
 void battleMode(struct FlashCards difficultyArr[], int difficultyCount, int goalTime);
 void lightningMode(struct FlashCards difficultyArr[], int difficultyCount);
+void towerMode(struct FlashCards difficultyArr[], int difficultyCount, int goalTime);
 int main(){
 	int num,i,subjectNo,indexDel,indexEdit,editChoice,count;
 	int gameChoice,mathsCount=0,scienceCount=0,generalCount=0,subChoice;
@@ -104,7 +105,7 @@ int main(){
 							Maths[i]=Maths[i+1];
 						}
 						mathsCount--;   
-						printf("deleted successfully");
+						printf("deleted successfully\n");
 				    break;
 				    case 2:
 				    	if(scienceCount==0){
@@ -250,9 +251,9 @@ int main(){
 					break;
 				}
 				printf("      GAME MENU      \n");
-	            printf("1. Sudden death\n");
+	            printf("1. Lightning mode\n");
 	            printf("2. Battle mode\n");
-	            printf("3.      \n");
+	            printf("3. Tower mode\n");
 	            printf("Enter the game you want to play with these questions: ");
 	            scanf("%d", &gameChoice);
 	                switch(gameChoice){
@@ -266,7 +267,9 @@ int main(){
 							battleMode(difficultyArr, difficultyCount, goalTime);
 				         break;
 			            case 3:
-				            //function name
+				            printf("Enter your goal time in seconds, or 0 for no limit: ");
+				            scanf("%d", &goalTime);
+				            towerMode(difficultyArr, difficultyCount, goalTime);
 				         break;
 			           default:
 				         printf("Please enter a valid game option.\n");	
@@ -281,9 +284,12 @@ int main(){
 }  
 void battleMode(struct FlashCards difficultyArr[], int difficultyCount, int goalTime){
 	int enemyHP , playerHP, damage=15;
-	int correct,wrong,askedQues=0;
+	int correct,wrong,wrongCount=0,askedQues=0;
+	struct FlashCards wrongQ[100];
+    char notes[100][300];
+    memset(notes, 0, sizeof(notes));   // initialize notes
 	int index,i;
-	char answer[100];
+	char answer[100], noteChoice;
 	enemyHP = 60;
 	playerHP = 60;
 	printf("You get a fifteen point hit at your enemy per question if answered right\n");
@@ -310,6 +316,14 @@ void battleMode(struct FlashCards difficultyArr[], int difficultyCount, int goal
 		}else{
 			printf("Wrong! , you are down 15hp\n");
 			playerHP=playerHP-damage;
+		    wrongQ[wrongCount] = difficultyArr[index];
+            printf("Do you want to save a note? (y/n): ");
+            scanf(" %c", &noteChoice);
+            if(noteChoice == 'y'){
+               printf("Enter your note: ");
+               scanf(" %[^\n]", notes[wrongCount]);
+            }
+            wrongCount++;
 		}
 		printf("HP of enemy : %d\n", enemyHP);
         printf("HP of player : %d\n", playerHP);
@@ -332,11 +346,20 @@ void battleMode(struct FlashCards difficultyArr[], int difficultyCount, int goal
     } else {
         printf("Battle ended without a clear winner.\n");
     }
+    if(wrongCount > 0){
+       printf("\nReview Incorrect Questions:\n");
+        for(i = 0; i<wrongCount; i++){
+            printf("%d) %s\n",i + 1, wrongQ[i].question);           //revision mode(displaing previous wrong questions
+            if(strlen(notes[i])>0){
+                printf("   Note: %s\n",notes[i]);          //displaying the saved notes for each question, if saved
+            }
+        }
+    }
 }
 
 void lightningMode(struct FlashCards difficultyArr[], int difficultyCount){
 
-    int score = 0,asked = 0,wrongCount = 0,streak = 1, i;
+    int score = 0,asked = 0,wrongCount = 0,streak = 0, i;
     struct FlashCards wrongQ[100];
     char notes[100][300];
     memset(notes, 0, sizeof(notes));   // initialize notes
@@ -345,7 +368,7 @@ void lightningMode(struct FlashCards difficultyArr[], int difficultyCount){
     int index, maxStreak = 0;
     char answer[200], noteChoice;
 
-    printf("     LIGHTNING ROUND     \n");
+    printf("        LIGHTNING ROUND        \n");
     printf("You have only 10 seconds per question.\n");
     printf("The number of questions will be 5\n");
     printf("Correct answers will give you +10 points, wrong or slow answers would result in points hehehe.\n");
@@ -396,7 +419,7 @@ void lightningMode(struct FlashCards difficultyArr[], int difficultyCount){
         }
         asked++;
     }
-    printf("    LIGHTNING MODE RESULTS    ");
+    printf("        LIGHTNING MODE RESULTS        ");
     printf("\n     FINAL SCORE     \n");
     printf("Total Score: %d\n", score);
     printf("Max Streak: %d\n", maxStreak);
@@ -411,9 +434,72 @@ void lightningMode(struct FlashCards difficultyArr[], int difficultyCount){
         }
     }
 }
-void suddenDeath(struct FlashCards difficultyArr[], int difficultyCount){
-	int
+void towerMode(struct FlashCards difficultyArr[], int difficultyCount, int goalTime){
+	int towerHeight = 0, index, i, wrongCount = 0, asked = 0, timeTaken;
+	struct FlashCards wrongQ[100];
+    char notes[100][300], noteChoice;
+    memset(notes, 0, sizeof(notes));   // initialize notes
+	char answer[200];
+	time_t start;
+	time_t end;
+	printf("             TOWER MODE           ");
+	printf("Goal: Build a tower of height 4!\n");
+	printf("Coorect answer = +1 floor\n");
+	printf("Wrong answer = tower height is CUT IN HALF\n");
+	if(goalTime > 0)
+	   printf("You must finish within %d seconds!\n",goalTime);
+	srand(time(NULL));
+	start= time(NULL);
+	while(towerHeight<4 && asked<3){
+		index= rand() % difficultyCount;
+		printf("Question %d: %s\n", asked+1, difficultyArr[index].question);
+		printf("Type your answer: ");
+		scanf(" %[^\n]", answer);
+		if(strcmp(answer, difficultyArr[index].answer)==0){
+			towerHeight++;
+			printf("Correct answer, The tower grows by %d floors.\n", towerHeight);
+		}
+		else{
+			towerHeight /= 2;
+			printf("Wrong! Tower Collapes to %d floors.\n", towerHeight);
+			printf("Correct answer: %s\n", difficultyArr[index].answer);
+			wrongQ[wrongCount] = difficultyArr[index];
+            printf("Do you want to save a note? (y/n): ");
+            scanf(" %c", &noteChoice);
+            if(noteChoice == 'y'){
+               printf("Enter your note: ");
+               scanf(" %[^\n]", notes[wrongCount]);
+            }
+            wrongCount++;
+		}
+		asked++;
+	}
+	end = time(NULL);
+	timeTaken = end-start;
+	printf("      RESULT     ");
+	if(towerHeight >= 4){
+		printf("You built a full tower of 4 floors!");
+		if(goalTime>0){
+			if(timeTaken<=goalTime){
+				printf("And you did it in %d seconds!\n", goalTime);
+			}
+			else{
+				printf("but the time taken exceeded your given time limit. Time taken: %d seconds.\n", timeTaken);
+			}
+		}
+	}else printf("You couldnt reach 4 floors. Final height: %d\n", towerHeight);
+	if(wrongCount > 0){
+        printf("\nReview Incorrect Questions:\n");
+        for(i = 0; i<wrongCount; i++){
+            printf("%d) %s\n",i + 1, wrongQ[i].question);           //revision mode(displaing previous wrong questions
+            if(strlen(notes[i])>0){
+                printf("   Note: %s\n",notes[i]);          //displaying the saved notes for each question, if saved
+            }
+        }
+    }
+	
 }
+
 		    
 		
 		
